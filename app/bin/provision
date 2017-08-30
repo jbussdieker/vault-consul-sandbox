@@ -1,0 +1,90 @@
+#!/usr/bin/env ruby
+require 'net/http'
+require 'json'
+
+$stdout.sync = true
+
+class VaultConnectionError < StandardError
+  def initialize(msg="Error")
+    super
+  end
+end
+
+def vault_put(host, path, params)
+  client = Net::HTTP.new(host, 8200)
+  req = Net::HTTP::Put.new(path)
+  req.body = params.to_json
+
+  begin
+    resp = client.request(req)
+  rescue SocketError, Errno::ECONNREFUSED => e
+    raise VaultConnectionError.new(e.message)
+  end
+
+  if resp.code != "200"
+    raise VaultConnectionError.new("Invalid response (#{resp.code}): #{resp.body}")
+  end
+
+  JSON.parse(resp.body)
+end
+
+def unseal_vault(host, key)
+  begin
+    result = vault_put(host, "/v1/sys/unseal", { key: key })
+  rescue VaultConnectionError => e
+    puts "Unseal: Error connecting"
+    return false
+  end
+end
+
+def init_vault(shares = 5, threshold = 3)
+  puts "Initializing vault..."
+
+  params = {
+    secret_shares: shares,
+    secret_threshold: threshold
+  }
+
+  begin
+    result = vault_put("vault1", "/v1/sys/init", params)
+  rescue VaultConnectionError => e
+    puts "Init: Error connecting #{e}"
+    return false
+  end
+
+  if ARGV[0]
+    f = File.open("/tmp/keys", "w")
+  else
+    f = $stdout
+  end
+
+  f.puts "Keys"
+  f.puts result["keys"]
+  f.puts
+  f.puts "Root Token"
+  f.puts result["root_token"]
+
+  if ARGV[0]
+    puts `gpg --output /keys/vault-keys.gpg --trust-model always -aer #{ARGV[0]} /tmp/keys >/dev/null 2>&1`
+  end
+
+  %w{vault1 vault2 vault3}.each do |host|
+    result["keys"].take(threshold).each_with_index do |key, i|
+      puts "Unsealing #{host} key #{i}/#{threshold}"
+      unseal_vault(host, key)
+    end
+  end
+
+  return true
+end
+
+if ARGV[0]
+  puts "Importing GPG key..."
+  puts `gpg --import /keys/vault-consul-sandbox.pub >/dev/null 2>&1`
+end
+
+while(!init_vault) do
+  sleep 1
+end
+
+puts "Finished provisioning successfully"
