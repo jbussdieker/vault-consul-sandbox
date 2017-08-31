@@ -1,5 +1,4 @@
-FROM alpine:3.6
-MAINTAINER Jeff Mitchell <jeff@hashicorp.com> (@jefferai)
+FROM ubuntu
 
 # This is the release of Vault to pull in.
 ENV VAULT_VERSION=0.8.1
@@ -11,10 +10,11 @@ ENV DOCKER_BASE_VERSION=0.0.4
 # Create a vault user and group first so the IDs get set the same way,
 # even as the rest of this may change over time.
 RUN addgroup vault && \
-    adduser -S -G vault vault
+    adduser --system vault
 
 # Set up certificates, our base tools, and Vault.
-RUN apk add --no-cache ca-certificates gnupg openssl libcap && \
+RUN apt-get update && \
+    apt-get -y install wget unzip iproute2 gawk && \
     gpg --keyserver pgp.mit.edu --recv-keys 91A6E7F85D05C65630BEF18951852D87348FFC4C && \
     mkdir -p /tmp/build && \
     cd /tmp/build && \
@@ -33,7 +33,6 @@ RUN apk add --no-cache ca-certificates gnupg openssl libcap && \
     unzip -d /bin vault_${VAULT_VERSION}_linux_amd64.zip && \
     cd /tmp && \
     rm -rf /tmp/build && \
-    apk del gnupg openssl && \
     rm -rf /root/.gnupg
 
 # /vault/logs is made available to use as a location to store audit logs, if

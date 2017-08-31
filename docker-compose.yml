@@ -7,10 +7,7 @@ services:
       context: consul
     volumes:
       - ${PWD}/consul/config.json:/consul/config/config.json
-    environment:
-      CONSUL_BIND_INTERFACE: eth0
-      CONSUL_CLIENT_INTERFACE: eth0
-    command: agent -ui
+    command: consul agent -config-dir /consul/config -data-dir /consul/data -ui
   consul2:
     container_name: consul2
     hostname: consul2
@@ -18,10 +15,7 @@ services:
       context: consul
     volumes:
       - ${PWD}/consul/config.json:/consul/config/config.json
-    environment:
-      CONSUL_BIND_INTERFACE: eth0
-      CONSUL_CLIENT_INTERFACE: eth0
-    command: agent -ui -join consul1
+    command: consul agent -config-dir /consul/config -data-dir /consul/data -ui -join consul1
     depends_on:
       - consul1
   consul3:
@@ -31,10 +25,7 @@ services:
       context: consul
     volumes:
       - ${PWD}/consul/config.json:/consul/config/config.json
-    environment:
-      CONSUL_BIND_INTERFACE: eth0
-      CONSUL_CLIENT_INTERFACE: eth0
-    command: agent -ui -join consul1
+    command: consul agent -config-dir /consul/config -data-dir /consul/data -ui -join consul1
     depends_on:
       - consul1
   consul:
@@ -60,12 +51,10 @@ services:
     environment:
       VAULT_REDIRECT_INTERFACE: eth0
       VAULT_CLUSTER_INTERFACE: eth0
-    command: server
+    command: vault server -config /vault/config
     privileged: true
     depends_on:
-      - consul1
-      - consul2
-      - consul3
+      - consul
   vault2:
     container_name: vault2
     hostname: vault2
@@ -76,12 +65,10 @@ services:
     environment:
       VAULT_REDIRECT_INTERFACE: eth0
       VAULT_CLUSTER_INTERFACE: eth0
-    command: server
+    command: vault server -config /vault/config
     privileged: true
     depends_on:
-      - consul1
-      - consul2
-      - consul3
+      - consul
   vault3:
     container_name: vault3
     hostname: vault3
@@ -92,12 +79,10 @@ services:
     environment:
       VAULT_REDIRECT_INTERFACE: eth0
       VAULT_CLUSTER_INTERFACE: eth0
-    command: server
+    command: vault server -config /vault/config
     privileged: true
     depends_on:
-      - consul1
-      - consul2
-      - consul3
+      - consul
   vault:
     container_name: vault
     hostname: vault
