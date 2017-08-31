@@ -4,6 +4,8 @@ require 'json'
 
 $stdout.sync = true
 
+$root_token = nil
+
 class VaultConnectionError < StandardError
   def initialize(msg="Error")
     super
@@ -58,6 +60,8 @@ def init_vault(shares = 5, threshold = 3)
     f = $stdout
   end
 
+  $root_token = result["root_token"]
+
   f.puts "Keys"
   f.puts result["keys"]
   f.puts
@@ -86,5 +90,10 @@ end
 while(!init_vault) do
   sleep 1
 end
+
+sleep 2
+
+puts `vault auth -address=http://vault:8200 #{$root_token}`
+puts `vault write -address=http://vault:8200 secret/foo/bar baz=1`
 
 puts "Finished provisioning successfully"
