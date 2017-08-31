@@ -5,17 +5,17 @@ services:
     hostname: consul1
     build:
       context: consul
-    command: agent -server
-    ports:
-      - 8500:8500
+    volumes:
+      - ${PWD}/consul/config.json:/consul/config/config.json
+    command: agent
   consul2:
     container_name: consul2
     hostname: consul2
     build:
       context: consul
-    command: agent -server -join consul1
-    ports:
-      - 8501:8500
+    volumes:
+      - ${PWD}/consul/config.json:/consul/config/config.json
+    command: agent -join consul1
     depends_on:
       - consul1
   consul3:
@@ -23,19 +23,34 @@ services:
     hostname: consul3
     build:
       context: consul
-    command: agent -server -join consul1
-    ports:
-      - 8502:8500
+    volumes:
+      - ${PWD}/consul/config.json:/consul/config/config.json
+    command: agent -join consul1
     depends_on:
       - consul1
+  consul:
+    container_name: consul
+    hostname: consul
+    image: nginx
+    ports:
+      - 8500:8500
+    volumes:
+      - ${PWD}/consul/consul.conf:/etc/nginx/conf.d/consul.conf
+    depends_on:
+      - consul1
+      - consul2
+      - consul3
+
   vault1:
     container_name: vault1
     hostname: vault1
     build:
       context: vault
+    volumes:
+      - ${PWD}/vault/config.json:/vault/config/config.json
+    environment:
+      VAULT_REDIRECT_INTERFACE: eth0
     command: server
-    ports:
-      - 8200:8200
     privileged: true
     depends_on:
       - consul1
@@ -46,9 +61,11 @@ services:
     hostname: vault2
     build:
       context: vault
+    volumes:
+      - ${PWD}/vault/config.json:/vault/config/config.json
+    environment:
+      VAULT_REDIRECT_INTERFACE: eth0
     command: server
-    ports:
-      - 8201:8200
     privileged: true
     depends_on:
       - consul1
@@ -59,14 +76,29 @@ services:
     hostname: vault3
     build:
       context: vault
+    volumes:
+      - ${PWD}/vault/config.json:/vault/config/config.json
+    environment:
+      VAULT_REDIRECT_INTERFACE: eth0
     command: server
-    ports:
-      - 8202:8200
     privileged: true
     depends_on:
       - consul1
       - consul2
       - consul3
+  vault:
+    container_name: vault
+    hostname: vault
+    image: nginx
+    ports:
+      - 8200:8200
+    volumes:
+      - ${PWD}/vault/vault.conf:/etc/nginx/conf.d/vault.conf
+    depends_on:
+      - vault1
+      - vault2
+      - vault3
+
   app:
     container_name: app
     build:
@@ -75,9 +107,5 @@ services:
       - ${PWD}/keys:/keys
     command: provision ${GPG_KEY_ID}
     depends_on:
-      - consul1
-      - consul2
-      - consul3
-      - vault1
-      - vault2
-      - vault3
+      - consul
+      - vault
