@@ -31,11 +31,11 @@ services:
   consul:
     container_name: consul
     hostname: consul
-    image: nginx
+    image: haproxy
     ports:
       - 8500:8500
     volumes:
-      - ${PWD}/consul/consul.conf:/etc/nginx/conf.d/consul.conf
+      - ${PWD}/consul/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
     depends_on:
       - consul1
       - consul2
@@ -86,11 +86,11 @@ services:
   vault:
     container_name: vault
     hostname: vault
-    image: nginx
+    image: haproxy
     ports:
       - 8200:8200
     volumes:
-      - ${PWD}/vault/vault.conf:/etc/nginx/conf.d/vault.conf
+      - ${PWD}/vault/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
     depends_on:
       - vault1
       - vault2

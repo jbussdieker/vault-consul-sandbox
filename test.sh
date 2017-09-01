@@ -1,8 +1,8 @@
 export VAULT_ADDR=http://localhost:8200
-vault auth 6caf2993-e858-3edb-ac97-6ea8042eaced
+vault auth $1
 
 for (( ; ; )); do
   vault write secret/timestamp value=`date +%s`
-  vault read secret/timestamp
+  vault read -field=value secret/timestamp; echo
   sleep 1
 done
